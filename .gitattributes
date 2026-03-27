@@ -1,0 +1,3 @@
+# Inside meta branch root
+data/** linguist-generated=true
+*.json linguist-generated=true
