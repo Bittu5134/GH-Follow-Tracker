@@ -1,0 +1,68 @@
+name: Daily Follower Tracker
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  track:
+    runs-on: windows-latest
+    permissions:
+      contents: write 
+
+    env:
+      PYTHONUTF8: 1
+      PYTHONIOENCODING: utf-8
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      WEBHOOK_KEY: ${{ secrets.WEBHOOK_KEY }}
+
+    steps:
+      # 1. Get the script from the main branch
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          path: workspace # Put main branch code here
+
+      # 2. Get the data folder from the meta branch
+      - name: Checkout Data
+        uses: actions/checkout@v4
+        with:
+          ref: meta # Target the meta branch
+          path: data-store # Put meta branch contents here
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      # 3. Move data into place, run, and move back
+      - name: Run Tracker
+        run: |
+          # Move data folder from meta-checkout to current workspace
+          if (Test-Path "data-store/data") {
+            Move-Item -Path "data-store/data" -Destination "workspace/data"
+          }
+          
+          # Move into the code directory and run script
+          cd workspace
+          python script/main.py
+          
+          # Move the updated data back to the meta-checkout folder
+          cd ..
+          if (!(Test-Path "data-store/data")) { New-Item -ItemType Directory -Path "data-store/data" }
+          Copy-Item -Path "workspace/data/*" -Destination "data-store/data/" -Recurse -Force
+        shell: pwsh
+
+      # 4. Commit and Push ONLY to the meta branch
+      - name: Push to Meta Branch
+        working-directory: data-store
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (git commit -m "chore: data update $(date)" && git push origin meta)
+        shell: bash
