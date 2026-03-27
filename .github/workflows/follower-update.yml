@@ -49,7 +49,7 @@ jobs:
           
           # Move into the code directory and run script
           cd workspace
-          python script/main.py
+          python scripts/main.py
           
           # Move the updated data back to the meta-checkout folder
           cd ..
