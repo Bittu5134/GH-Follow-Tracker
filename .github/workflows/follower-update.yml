@@ -1,8 +1,8 @@
-name: Daily Follower Tracker
+name: Follow tracker
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -18,19 +18,17 @@ jobs:
       WEBHOOK_KEY: ${{ secrets.WEBHOOK_KEY }}
 
     steps:
-      # 1. Get the script from the main branch
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          path: workspace # Put main branch code here
+          path: workspace
 
-      # 2. Get the data folder from the meta branch
       - name: Checkout Data
         uses: actions/checkout@v4
         with:
-          ref: meta # Target the meta branch
-          path: data-store # Put meta branch contents here
-
+          ref: meta
+          path: data-store 
+  
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -39,7 +37,6 @@ jobs:
       - name: Install Dependencies
         run: pip install requests
 
-      # 3. Move data into place, run, and move back
       - name: Run Tracker
         run: |
           # Move data folder from meta-checkout to current workspace
@@ -57,7 +54,6 @@ jobs:
           Copy-Item -Path "workspace/data/*" -Destination "data-store/data/" -Recurse -Force
         shell: pwsh
 
-      # 4. Commit and Push ONLY to the meta branch
       - name: Push to Meta Branch
         working-directory: data-store
         run: |

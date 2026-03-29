@@ -1,0 +1,25 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "follow",
+	"main": "src/index.js",
+	"compatibility_date": "2026-03-10",
+	"observability": {
+		"enabled": true
+	},
+	
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+	{
+		"binding": "DB",
+		"database_name": "follow-history",
+		"database_id": "58502066-b37b-4e57-afbc-b3f470de27ce"
+	}
+	],
+	"assets": {
+		"run_worker_first": false,
+		"directory": "./public/",
+		"binding": "ASSETS"
+	}
+}

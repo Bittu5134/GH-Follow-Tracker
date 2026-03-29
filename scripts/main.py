@@ -5,6 +5,7 @@ import time
 from datetime import datetime, timezone
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+WEBHOOK_KEY =  os.getenv("WEBHOOK_KEY")
 REPO_OWNER = "bittu5134"
 REPO_NAME = "gh-follow-tracker"
 
@@ -12,10 +13,8 @@ URL_GQL = "https://api.github.com/graphql"
 URL_API = "https://api.github.com"
 URL_WORKER = "https://follow.lazybittu.workers.dev/api/v1"
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
-WEBHOOK_KEY =  os.getenv("WEBHOOK_KEY")
 
-
-def diskJson(path, data=None, indent=4):
+def diskJson(path, data=None, indent=0):
     """
     Reads or writes JSON data to a file.
     - If 'data' is provided: Writes data to the path.
@@ -188,7 +187,7 @@ def trackUserHistory(username, userId, followerCount, createdAt, nowTs):
     userData = diskJson(path) or {
         "username": username,
         "id": userId,
-        "crearedAt": createdAt,
+        "createdAt": createdAt,
         "firstTracked": nowTs,
         "history": [],
     }

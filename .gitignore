@@ -6,11 +6,11 @@ temp
 ./temp
 ./test
 .vscode
-public
-src
-package-lock.json
-package.json
-wrangler.jsonc
+# public
+# src
+# package-lock.json
+# package.json
+# wrangler.jsonc
 
 # Logs
 

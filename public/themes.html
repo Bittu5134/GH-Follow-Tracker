@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+		<title>SVG Gallery | Proportional Mode</title>
+		<style>
+			:root {
+				--bg: #0d1117;
+				--fg: #c9d1d9;
+				--unit: 200px;
+				--gap: 20px;
+			}
+
+			[data-theme='light'] {
+				--bg: #ffffff;
+				--fg: #1f2328;
+			}
+
+			body {
+				background: var(--bg);
+				color: var(--fg);
+				margin: 0;
+				display: flex;
+				flex-direction: column;
+				align-items: center;
+				justify-content: center;
+				min-height: 100vh;
+				overflow: hidden;
+				font-family: sans-serif;
+				transition: ease 0.3s;
+			}
+
+			#scaler {
+				transition: transform 0.1s ease;
+			}
+
+			.grid {
+				display: grid;
+				/* Column 1 is 2x units wide to fit Square, Col 2 & 3 are 1 unit each */
+				grid-template-columns: calc(var(--unit) * 2) var(--unit) var(--unit);
+				grid-template-rows: repeat(3, var(--unit));
+				gap: var(--gap);
+			}
+
+			.box {
+				display: flex;
+				overflow: hidden;
+				align-items: center;
+				justify-content: center;
+			}
+
+			canvas {
+				display: block;
+				image-rendering: -webkit-optimize-contrast;
+			}
+
+			/* Placements */
+			.square {
+				grid-area: 1 / 1 / 3 / 2;
+			}
+
+			.diamond {
+				grid-area: 1 / 2 / 2 / 3;
+			}
+
+			.circle {
+				grid-area: 1 / 3 / 2 / 4;
+			}
+
+			.default {
+				grid-area: 2 / 2 / 3 / 4;
+			}
+
+			.banner {
+				grid-area: 3 / 1 / 4 / 4;
+			}
+
+			/* Navigation UI */
+			.nav {
+				position: fixed;
+				bottom: 30px;
+				display: flex;
+				gap: 15px;
+				background: rgba(0, 0, 0, 0.6);
+				padding: 10px 25px;
+				border-radius: 50px;
+				backdrop-filter: blur(10px);
+				z-index: 100;
+			}
+
+			button {
+				background: none;
+				border: none;
+				color: white;
+				cursor: pointer;
+				font-size: 20px;
+			}
+
+			#themeName {
+				font-family: monospace;
+				color: #58a6ff;
+				min-width: 140px;
+				text-align: center;
+			}
+
+			#popup {
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%, -50%);
+				background: #161b22;
+				border: 1px solid #30363d;
+				padding: 25px;
+				border-radius: 15px;
+				display: none;
+				width: 400px;
+				z-index: 200;
+			}
+
+			#popup.active {
+				display: block;
+			}
+
+			.picker-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 8px;
+				max-height: 350px;
+				overflow-y: auto;
+				margin-top: 15px;
+			}
+
+			.item {
+				font-size: 13px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="scaler">
+			<div class="grid">
+				<div class="box square" data-p="square"><canvas></canvas></div>
+				<div class="box diamond" data-p="diamond"><canvas></canvas></div>
+				<div class="box circle" data-p="circle"><canvas></canvas></div>
+				<div class="box default" data-p="default"><canvas></canvas></div>
+				<div class="box banner" data-p="banner"><canvas></canvas></div>
+			</div>
+		</div>
+
+		<div class="nav">
+			<button id="modeBtn">☀️</button>
+			<button id="prevBtn">◀</button>
+			<span id="themeName">...</span>
+			<button id="nextBtn">▶</button>
+			<button id="pickBtn">⚙️</button>
+		</div>
+
+		<div id="popup">
+			<div style="display: flex; justify-content: space-between">
+				<h3>Themes</h3>
+				<button id="closeBtn">×</button>
+			</div>
+			<div class="picker-grid" id="themePicker"></div>
+		</div>
+
+		<script type="module">
+			import { THEMES, DEFAULT_STATE, SIZE_PRESETS } from './config.js';
+			import { generateChartSVG } from './generate.js';
+
+			const ALL = Object.keys(THEMES).sort();
+			let selected = [...ALL];
+			let idx = 0;
+			let timer;
+			const unit = 200;
+			const gap = 20;
+
+			const update = async () => {
+				const theme = selected[idx];
+				document.getElementById('themeName').innerText = theme;
+
+				for (const box of document.querySelectorAll('.box')) {
+					const pKey = box.dataset.p;
+					const canvas = box.querySelector('canvas');
+					const ctx = canvas.getContext('2d');
+					const preset = SIZE_PRESETS[pKey];
+
+					// 1. Calculate Grid Slot Dimensions (Including Gaps)
+					let targetW, targetH;
+					if (pKey === 'square') {
+						targetW = unit * 2;
+						targetH = unit * 2 + gap;
+					}
+					if (pKey === 'diamond') {
+						targetW = unit;
+						targetH = unit;
+					}
+					if (pKey === 'circle') {
+						targetW = unit;
+						targetH = unit;
+					}
+					if (pKey === 'default') {
+						targetW = unit * 2 + gap;
+						targetH = unit;
+					}
+					if (pKey === 'banner') {
+						targetW = unit * 4 + gap * 2;
+						targetH = unit;
+					}
+
+					// 2. Proportional Height Logic for 'Default'
+					let finalH = targetH;
+					if (pKey === 'default') {
+						// Aspect ratio from preset: 495 / 195
+						const aspectRatio = preset.width / preset.height;
+						finalH = targetW / aspectRatio;
+					}
+
+					// 3. Set Canvas Resolution (DPR for sharpness)
+					const dpr = window.devicePixelRatio || 1;
+					canvas.width = targetW * dpr;
+					canvas.height = finalH * dpr;
+					canvas.style.width = `${targetW}px`;
+					canvas.style.height = `${finalH}px`;
+					ctx.scale(dpr, dpr);
+
+					const svgString = generateChartSVG({
+						...DEFAULT_STATE,
+						...THEMES[theme],
+						...preset,
+						theme,
+						preset: pKey,
+					});
+
+					const img = new Image();
+					const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+					const url = URL.createObjectURL(svgBlob);
+
+					img.onload = () => {
+						ctx.clearRect(0, 0, canvas.width, canvas.height);
+						// Draw to fill the proportional canvas exactly
+						ctx.drawImage(img, 0, 0, targetW, finalH);
+						URL.revokeObjectURL(url);
+					};
+					img.src = url;
+				}
+			};
+
+			const next = () => {
+				idx = (idx + 1) % selected.length;
+				update();
+				start();
+			};
+			const prev = () => {
+				idx = (idx - 1 + selected.length) % selected.length;
+				update();
+				start();
+			};
+			const start = () => {
+				clearInterval(timer);
+				timer = setInterval(next, 1000);
+			};
+
+			document.getElementById('nextBtn').onclick = next;
+			document.getElementById('prevBtn').onclick = prev;
+			document.getElementById('modeBtn').onclick = () => {
+				const b = document.body;
+				b.setAttribute('data-theme', b.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+			};
+			document.getElementById('pickBtn').onclick = () => document.getElementById('popup').classList.add('active');
+			document.getElementById('closeBtn').onclick = () => document.getElementById('popup').classList.remove('active');
+
+			const scale = () => {
+				const s = document.getElementById('scaler');
+				const w = unit * 4 + gap * 2 + 100;
+				const h = unit * 3 + gap * 2 + 100;
+				s.style.transform = `scale(${Math.min(window.innerWidth / w / 1.2, window.innerHeight / h / 1.2)})`;
+			};
+
+			const picker = document.getElementById('themePicker');
+			ALL.forEach((t) => {
+				const label = document.createElement('label');
+				label.className = 'item';
+				label.innerHTML = `<input type="checkbox" checked value="${t}"> ${t}`;
+				label.querySelector('input').onchange = (e) => {
+					selected = e.target.checked ? [...selected, t] : selected.filter((x) => x !== t);
+					if (idx >= selected.length) idx = 0;
+				};
+				picker.appendChild(label);
+			});
+			// --- KEYBOARD NAVIGATION ---
+			window.addEventListener('keydown', (e) => {
+				// Right Arrow or 'D' key for Next
+				if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'd') {
+					next();
+				}
+				// Left Arrow or 'A' key for Previous
+				if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'a') {
+					prev();
+				}
+				// 'T' key to toggle Light/Dark mode
+				if (e.key.toLowerCase() === 't') {
+					document.getElementById('modeBtn').click();
+				}
+			});
+			window.onresize = scale;
+			scale();
+			update();
+			start();
+		</script>
+	</body>
+</html>

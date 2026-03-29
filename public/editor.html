@@ -1,0 +1,675 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>GitHub Follow Visualizer</title>
+		<style>
+			:root {
+				--color-canvas-default: #0d1117;
+				--color-canvas-subtle: #010409;
+				--color-border-default: #30363d;
+				--color-fg-default: #c9d1d9;
+				--color-fg-muted: #8b949e;
+				--color-btn-bg: #21262d;
+				--color-btn-border: rgba(240, 246, 252, 0.1);
+				--color-btn-primary-bg: #238636;
+				--color-btn-primary-border: rgba(240, 246, 252, 0.1);
+				--color-accent-fg: #58a6ff;
+				--radius: 6px;
+				--font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+			}
+
+			[data-theme='light'] {
+				--color-canvas-default: #ffffff;
+				--color-canvas-subtle: #f6f8fa;
+				--color-border-default: #d0d7de;
+				--color-fg-default: #24292f;
+				--color-fg-muted: #57606a;
+				--color-btn-bg: #f6f8fa;
+				--color-btn-border: rgba(27, 31, 36, 0.15);
+				--color-btn-primary-bg: #2da44e;
+				--color-btn-primary-border: rgba(27, 31, 36, 0.15);
+				--color-accent-fg: #0969da;
+			}
+
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+				transition: cubic-bezier(0.62, 1, 0.84, 0.97) 0.75s;
+			}
+
+			body {
+				font-family: var(--font-stack);
+				background-color: var(--color-canvas-default);
+				color: var(--color-fg-default);
+				padding: 2vh 3px;
+			}
+
+			h1 a {
+				color: currentColor;
+				text-decoration: none;
+				font-size: 1em;
+			}
+
+			.container {
+				max-width: 1240px;
+				margin: 0 auto;
+			}
+
+			header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding-bottom: 16px;
+				border-bottom: 1px solid var(--color-border-default);
+				margin-bottom: 24px;
+			}
+
+			.header-actions {
+				display: flex;
+				gap: 8px;
+				align-items: center;
+			}
+
+			@media (max-width: 650px) {
+				header {
+					flex-direction: column;
+					align-items: center;
+					gap: 16px;
+				}
+
+				.header-actions {
+					width: 100%;
+					flex-wrap: wrap;
+					justify-content: flex-start;
+				}
+			}
+
+			.dashboard {
+				display: flex;
+				flex-direction: column;
+				gap: 16px;
+				margin-bottom: 32px;
+			}
+
+			.canvas-wrapper {
+				background-color: var(--color-canvas-subtle);
+				border: 1px solid var(--color-border-default);
+				border-radius: var(--radius);
+				padding: 32px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				min-height: 320px;
+				overflow: auto;
+			}
+
+			.action-bar {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 8px;
+				justify-content: center;
+			}
+
+			.settings-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+				gap: 20px;
+			}
+
+			.settings-section {
+				background: var(--color-canvas-default);
+				border: 1px solid var(--color-border-default);
+				border-radius: var(--radius);
+				padding: 20px;
+				margin: 0;
+				max-width: 90vw;
+				height: max-content;
+			}
+
+			.section-title {
+				font-size: 14px;
+				font-weight: 600;
+				margin-bottom: 16px;
+				padding-bottom: 8px;
+				border-bottom: 1px solid var(--color-border-default);
+			}
+
+			label {
+				display: block;
+				font-size: 12px;
+				font-weight: 600;
+				margin-bottom: 6px;
+				color: var(--color-fg-muted);
+			}
+
+			.form-group {
+				margin-bottom: 16px;
+			}
+
+			input[type='text'],
+			input[type='number'],
+			select {
+				width: 100%;
+				padding: 5px 12px;
+				font-size: 14px;
+				color: var(--color-fg-default);
+				background-color: var(--color-canvas-default);
+				border: 1px solid var(--color-border-default);
+				border-radius: var(--radius);
+			}
+
+			button {
+				cursor: pointer;
+				padding: 5px 16px;
+				font-size: 14px;
+				font-weight: 500;
+				color: var(--color-fg-default);
+				background-color: var(--color-btn-bg);
+				border: 1px solid var(--color-btn-border);
+				border-radius: var(--radius);
+			}
+
+			button.primary {
+				color: #ffffff;
+				background-color: var(--color-btn-primary-bg);
+			}
+
+			button.danger {
+				color: #cf222e;
+				border-color: #cf222e;
+			}
+
+			.color-control {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+
+			.color-control input[type='color'] {
+				width: 34px;
+				height: 34px;
+				padding: 0;
+				cursor: pointer;
+				border: none;
+				background: none;
+			}
+
+			.color-control input[type='text'] {
+				width: 100px;
+				font-family: monospace;
+				font-size: 12px;
+			}
+
+			.slider-control {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+
+			.slider-control input[type='range'] {
+				flex-grow: 1;
+				accent-color: var(--color-accent-fg);
+			}
+
+			.slider-control span {
+				font-size: 12px;
+				font-family: monospace;
+				width: 35px;
+				text-align: right;
+			}
+
+			#tracking-notice {
+				background-color: #fff8c5;
+				border: 1px solid rgba(175, 124, 23, 0.2);
+				color: #24292f;
+				padding: 12px 16px;
+				border-radius: var(--radius);
+				margin-bottom: 16px;
+				width: 100%;
+			}
+
+			[data-theme='dark'] #tracking-notice {
+				background-color: rgba(187, 128, 9, 0.15);
+				border: 1px solid rgba(187, 128, 9, 0.4);
+				color: #e3b341;
+			}
+
+			.notice-content {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				gap: 12px;
+				flex-wrap: wrap;
+			}
+
+			.notice-content span {
+				font-size: 14px;
+			}
+
+			.star-btn {
+				background-color: var(--color-btn-bg) !important;
+				border: 1px solid var(--color-btn-border) !important;
+				display: flex;
+				align-items: center;
+				gap: 4px;
+				white-space: nowrap;
+			}
+
+			.star-btn:hover {
+				background-color: var(--color-border-default) !important;
+			}
+		</style>
+	</head>
+
+	<body data-theme="dark">
+		<div class="container">
+			<header>
+				<h1><a href="/">GitHub Follower Visualizer</a></h1>
+				<div class="header-actions">
+					<button class="star-btn" onclick="window.open('https://github.com/Bittu5134/GH-Follow-Tracker', '_blank')">
+						⭐ Star on GitHub
+					</button>
+					<button onclick="location.href = '/dashboard'">🖥️ Dashboard</button>
+					<button id="themeToggle">☀️ Light Mode</button>
+				</div>
+			</header>
+
+			<div class="dashboard">
+				<div id="tracking-notice" style="display: none">
+					<div class="notice-content">
+						<span
+							>⚠️ <strong>User not found in database.</strong> Star the repository to opt-into live tracking for the visualization.</span
+						>
+					</div>
+				</div>
+				<div class="canvas-wrapper" id="canvas-container"></div>
+				<div class="action-bar">
+					<button class="primary" id="btn-md">Copy Markdown</button>
+					<button id="btn-html">HTML Code</button>
+					<button id="btn-pic">Dynamic Light/Dark</button>
+					<button id="btn-url">Copy URL</button>
+					<button id="btn-dl">Download SVG</button>
+					<button class="danger" id="btn-reset">⚠️ Reset</button>
+				</div>
+			</div>
+
+			<div class="settings-grid">
+				<div class="settings-section">
+					<h2 class="section-title">General Settings</h2>
+					<div class="form-group"><label>Username</label><input type="text" id="username" /></div>
+					<div class="form-group">
+						<label>Layout Preset</label
+						><select id="preset"></select>
+					</div>
+					<div class="form-group" style="display: flex; gap: 12px">
+						<div><label>Width</label><input type="number" id="width" /></div>
+						<div><label>Height</label><input type="number" id="height" /></div>
+					</div>
+
+					<div class="form-group">
+						<label>Timeframe</label>
+						<select id="timeframe">
+							<option value="week">7 Days</option>
+							<option value="fortnight">14 Days</option>
+							<option value="month">30 Days</option>
+							<option value="three_months">90 Days</option>
+							<option value="six_months" selected>180 Days</option>
+							<option value="year">365 Days</option>
+							<option value="alltime">All Time</option>
+						</select>
+					</div>
+					<div class="form-group" style="display: none"><label>Dataset</label><input type="text" id="dataset" /></div>
+					<div class="form-group"><label>Subtitle</label><input type="text" id="subtitleText" /></div>
+					<div class="form-group"><label>Fonts (use , to add multiple)</label><input type="text" id="font" /></div>
+				</div>
+
+				<div class="settings-section">
+					<h2 class="section-title">Colors (Hex + Alpha)</h2>
+					<div class="form-group">
+						<label>Theme Preset</label
+						><select id="theme"></select>
+					</div>
+					<div class="form-group" style="display: flex; align-items: center; gap: 8px">
+						<input type="checkbox" id="border" /> <label for="border" style="margin: 0">Enable Border</label>
+					</div>
+					<div id="color-inputs"></div>
+				</div>
+
+				<div class="settings-section">
+					<h2 class="section-title">Layout & Smoothing</h2>
+					<div id="slider-inputs"></div>
+				</div>
+			</div>
+		</div>
+
+		<script type="module">
+			// --- 1. STATE INITIALIZATION ---
+			import { THEMES, SIZE_PRESETS, DEFAULT_STATE, MOCK_DATA } from './config.js';
+			import { generateChartSVG } from './generate.js';
+			let state = { ...DEFAULT_STATE };
+			let fetchTimeout;
+			let profileUrl = `${window.location.origin}/user/${state.username}`;
+
+			// --- 2. UTILS (Removing # as requested) ---
+			const toHex = (color, alpha) => {
+				const alphaHex = Math.round((alpha / 100) * 255)
+					.toString(16)
+					.padStart(2, '0');
+				return (color.replace('#', '') + (alpha < 100 ? alphaHex : '')).toLowerCase();
+			};
+
+			const fromHex = (hex) => {
+				const clean = hex.replace('#', '');
+				return {
+					color: '#' + clean.substring(0, 6).padEnd(6, '0'),
+					alpha: clean.length === 8 ? Math.round((parseInt(clean.substring(6, 8), 16) / 255) * 100) : 100,
+				};
+			};
+
+			async function fetchGithubData(username) {
+				if (!username) return;
+				const usernameLower = username.toLowerCase();
+				const noticeEl = document.getElementById('tracking-notice'); // Get the notice element
+				profileUrl = `${window.location.origin}/user/${state.username}`;
+
+				try {
+					const rawUrl = `https://raw.githubusercontent.com/Bittu5134/GH-Follow-Tracker/refs/heads/meta/data/user/${usernameLower}.json`;
+					const githubResponse = await fetch(rawUrl);
+
+					if (githubResponse.ok) {
+						// SUCCESS: User is tracked
+						const data = await githubResponse.json();
+						state.dataset = data;
+						noticeEl.style.display = 'none'; // Hide notice
+					} else {
+						// FAIL: Not in raw database
+						noticeEl.style.display = 'block'; // Show notice
+
+						const apiRes = await fetch(`https://api.github.com/users/${username}`);
+						if (!apiRes.ok) {
+							noticeEl.style.display = 'none'; // Hide if user doesn't exist at all
+							return;
+						}
+
+						const userData = await apiRes.json();
+						const now = new Date().toISOString();
+
+						state.dataset = {
+							username: userData.login,
+							id: userData.id,
+							createdAt: userData.created_at,
+							firstTracked: now,
+							history: [
+								{
+									timestamp: now,
+									followerCount: userData.followers,
+								},
+							],
+						};
+					}
+					render();
+				} catch (e) {
+					console.error('GitHub Fetch Error:', e);
+					if (noticeEl) noticeEl.style.display = 'none';
+				}
+			}
+
+			// --- 3. DYNAMIC UI BUILDING ---
+			function initUI() {
+				const presetEl = document.getElementById('preset');
+				Object.keys(SIZE_PRESETS).forEach((k) => presetEl.add(new Option(k, k)));
+
+				const themeEl = document.getElementById('theme');
+				Object.keys(THEMES)
+					.sort()
+					.forEach((k) => themeEl.add(new Option(k, k)));
+
+				const colorFields = [
+					{ id: 'col_bg', label: 'Background' },
+					{ id: 'col_line', label: 'Line' },
+					{ id: 'col_area', label: 'Area Fill' },
+					{ id: 'col_title', label: 'Title Text' },
+					{ id: 'col_sub', label: 'Subtitle Text' },
+					{ id: 'col_border', label: 'Border' },
+				];
+
+				const cContainer = document.getElementById('color-inputs');
+				colorFields.forEach((f) => {
+					cContainer.innerHTML += `
+      <div class="form-group">
+        <label>${f.label}</label>
+        <div class="color-control">
+          <input type="color" id="${f.id}_p">
+          <input type="range" id="${f.id}_a" min="0" max="100">
+          <input type="text" id="${f.id}" readonly>
+        </div>
+      </div>`;
+				});
+
+				const sliderFields = [
+					{ id: 'textSize', label: 'Text Size', min: 10, max: 150 },
+					{ id: 'textPosX', label: 'Text X Position (%)', min: 0, max: 100 },
+					{ id: 'textPosY', label: 'Text Y Position (%)', min: 0, max: 100 },
+					{ id: 'round', label: 'Roundness (%)', min: 0, max: 100, step: 0.1 },
+					{ id: 'rotate', label: 'Rotate (degrees)', min: -90, max: 90, step: 0.1 },
+					{ id: 'smooth', label: 'Smoothing', min: 0, max: 1, step: 0.01 },
+					{ id: 'density', label: 'Point Density', min: 3, max: 100, step: 1 },
+					{ id: 'bWidth', label: 'Border Width', min: 1, max: 20 },
+					{ id: 'paddingT', label: 'Padding Top (%)', min: 0, max: 100, step: 0.1 },
+					{ id: 'paddingB', label: 'Padding Bottom (%)', min: 0, max: 100, step: 0.1 },
+					{ id: 'paddingL', label: 'Padding Left (%)', min: 0, max: 100, step: 0.1 },
+					{ id: 'paddingR', label: 'Padding Right (%)', min: 0, max: 100, step: 0.1 },
+				];
+
+				const sContainer = document.getElementById('slider-inputs');
+				sliderFields.forEach((f) => {
+					sContainer.innerHTML += `
+      <div class="form-group">
+        <label>${f.label}</label>
+        <div class="slider-control">
+          <input type="range" id="${f.id}_s" min="${f.min}" max="${f.max}" step="${f.step || 1}">
+          <span id="${f.id}_v">0</span>
+        </div>
+      </div>`;
+				});
+			}
+
+			// --- 4. CORE FUNCTIONALITY ---
+
+			function render() {
+				const renderState = { ...state };
+
+				console.log(renderState);
+
+				document.getElementById('canvas-container').innerHTML = generateChartSVG(renderState);
+			}
+
+			function updateUI() {
+				document.getElementById('preset').value = state.preset;
+				document.getElementById('theme').value = state.theme;
+				document.getElementById('username').value = state.username;
+				document.getElementById('subtitleText').value = state.subtitleText;
+				document.getElementById('font').value = state.font;
+				document.getElementById('width').value = state.width;
+				document.getElementById('height').value = state.height;
+				document.getElementById('border').checked = state.border;
+				// document.getElementById('dataset').value = state.dataset;
+				document.getElementById('timeframe').value = state.time;
+
+				// Colors
+				['col_bg', 'col_line', 'col_area', 'col_title', 'col_sub', 'col_border'].forEach((id) => {
+					const { color, alpha } = fromHex(state[id]);
+					document.getElementById(id + '_p').value = color;
+					document.getElementById(id + '_a').value = alpha;
+					document.getElementById(id).value = state[id];
+				});
+
+				[
+					'textSize',
+					'textPosX',
+					'textPosY',
+					'smooth',
+					'density',
+					'round',
+					'rotate',
+					'bWidth',
+					'paddingT',
+					'paddingB',
+					'paddingL',
+					'paddingR',
+				].forEach((id) => {
+					document.getElementById(id + '_s').value = state[id];
+					document.getElementById(id + '_v').innerText = state[id];
+				});
+
+				render();
+			}
+
+			// --- 5. URL BUILDER (MINIMAL) ---
+			function getURL() {
+				const params = new URLSearchParams();
+				const baseline = { ...DEFAULT_STATE, ...THEMES[state.theme], ...SIZE_PRESETS[state.preset] };
+				const API_BASE_URL = `${window.location.origin}/user/${state.username}.svg`;
+				profileUrl = `${window.location.origin}/user/${state.username}`;
+
+				Object.keys(state).forEach((k) => {
+					if (k != 'username' && k != 'dataset') {
+						if (state[k] !== baseline[k]) {
+							params.append(k, state[k]);
+						}
+					}
+				});
+
+				if (state.theme !== 'default') params.set('theme', state.theme);
+				if (state.preset !== 'default') params.set('preset', state.preset);
+
+				const qs = params.toString();
+				return `${API_BASE_URL}${qs ? '?' + qs : ''}`;
+			}
+
+			// --- 6. EVENT LISTENERS ---
+
+			function bind() {
+				document.getElementById('preset').oninput = (e) => {
+					state.preset = e.target.value;
+					Object.assign(state, SIZE_PRESETS[state.preset]);
+					updateUI();
+				};
+
+				document.getElementById('theme').oninput = (e) => {
+					state.theme = e.target.value;
+					Object.assign(state, THEMES[state.theme]);
+					updateUI();
+				};
+
+				document.getElementById('timeframe').oninput = (e) => {
+					state.time = e.target.value;
+					updateUI();
+				};
+
+				document.querySelectorAll('input').forEach((input) => {
+					input.oninput = (e) => {
+						const id = e.target.id;
+
+						if (id.includes('col_')) {
+							const base = id.split('_')[0] + '_' + id.split('_')[1];
+							state[base] = toHex(document.getElementById(base + '_p').value, document.getElementById(base + '_a').value);
+						} else if (id.includes('_s')) {
+							const base = id.split('_')[0];
+							state[base] = parseFloat(e.target.value);
+						} else if (id === 'border') {
+							state.border = e.target.checked;
+						} else {
+							state[id] = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+
+							if (id === 'username') {
+								clearTimeout(fetchTimeout);
+								fetchTimeout = setTimeout(() => {
+									fetchGithubData(e.target.value);
+								}, 1500);
+							}
+						}
+						updateUI();
+					};
+				});
+
+				// Buttons
+				document.getElementById('btn-url').onclick = () => {
+					navigator.clipboard.writeText(getURL());
+					alert('Direct SVG URL copied');
+				};
+				document.getElementById('btn-md').onclick = () => {
+					navigator.clipboard.writeText(`[![Stats](${getURL()})](${profileUrl})`);
+					alert('Markdown copied, This can be used on sites like Github');
+				};
+				document.getElementById('btn-html').onclick = () => {
+					navigator.clipboard.writeText(`<a href="${profileUrl}"><img src="${getURL()}"></a>`);
+					alert('HTML copied...');
+				};
+				document.getElementById('btn-pic').onclick = () => {
+					const urlObj = new URL(getURL());
+					const params = urlObj.searchParams;
+					params.delete('theme');
+					const keysToRemove = Array.from(params.keys()).filter((key) => key.startsWith('col_'));
+
+					keysToRemove.forEach((key) => params.delete(key));
+					const darkUrl = new URL(urlObj);
+					darkUrl.searchParams.set('theme', 'default');
+
+					const lightUrl = new URL(urlObj);
+					lightUrl.searchParams.set('theme', 'light');
+					const pictureTag = `
+					<a href="${profileUrl}">
+					<picture>
+						<source media="(prefers-color-scheme: dark)" srcset="${darkUrl.toString()}">
+						<source media="(prefers-color-scheme: light)" srcset="${lightUrl.toString()}">
+						<img src="${lightUrl.toString()}" alt="GitHub Follower Stats">
+					</picture>
+					</a>`.trim();
+
+					navigator.clipboard.writeText(pictureTag).then(() => {
+						alert(
+							'HTML Picture code copied \nUse this code to render an SVG that dynamically changes its theme to match the system theme of the user...',
+						);
+					});
+				};
+				document.getElementById('btn-reset').onclick = () => {
+					const tmpUsername = state.username;
+					state = { ...state.username, ...DEFAULT_STATE };
+					state.username = tmpUsername;
+
+					updateUI();
+				};
+				document.getElementById('btn-dl').onclick = () => {
+					const blob = new Blob([document.getElementById('canvas-container').innerHTML], { type: 'image/svg+xml' });
+					const a = document.createElement('a');
+					a.href = URL.createObjectURL(blob);
+					a.download = 'followers.svg';
+					a.click();
+				};
+			}
+
+			// --- 7. THEME TOGGLE ---
+			const themeBtn = document.getElementById('themeToggle');
+			function toggleUI(mode) {
+				const isDark = mode ? mode === 'dark' : document.body.getAttribute('data-theme') === 'light';
+				const final = isDark ? 'dark' : 'light';
+				document.body.setAttribute('data-theme', final);
+				themeBtn.innerText = final === 'dark' ? '🌙 Dark Mode' : '☀️ Light Mode';
+			}
+
+			themeBtn.onclick = () => toggleUI();
+			if (window.matchMedia('(prefers-color-scheme: dark)').matches) toggleUI('dark');
+
+			// Start
+			initUI();
+			bind();
+			updateUI();
+		</script>
+	</body>
+</html>

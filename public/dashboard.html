@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Dashboard | Follow Tracker</title>
+		<style>
+			:root {
+				--color-canvas-default: #0d1117;
+				--color-canvas-subtle: #010409;
+				--color-border-default: #30363d;
+				--color-fg-default: #c9d1d9;
+				--color-fg-muted: #8b949e;
+				--color-btn-bg: #21262d;
+				--color-btn-primary-bg: #238636;
+				--color-accent-fg: #58a6ff;
+				--color-btn-border: rgba(27, 31, 36, 0.15);
+				--radius: 6px;
+				--font-stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+			}
+
+			[data-theme='light'] {
+				--color-canvas-default: #e4ebe6;
+				--color-canvas-subtle: #f2f5f3;
+				--color-border-default: #232925;
+				--color-fg-default: #24292f;
+				--color-fg-muted: #57606a;
+				--color-btn-bg: #ccd4ce;
+				--color-btn-primary-bg: #2da44e;
+				--color-accent-fg: #0969da;
+			}
+
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+				transition: cubic-bezier(0.62, 1, 0.84, 0.97) 0.75s;
+			}
+
+			body {
+				font-family: var(--font-stack);
+				background: var(--color-canvas-default);
+				color: var(--color-fg-default);
+				padding: 1em;
+			}
+
+			.container {
+				max-width: 900px;
+				margin: 0 auto;
+			}
+
+			header {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding-bottom: 16px;
+				border-bottom: 1px solid var(--color-border-default);
+				margin-bottom: 32px;
+			}
+
+			header a {
+				text-decoration: none;
+				color: inherit;
+				font-size: 20px;
+				font-weight: 600;
+			}
+
+			.header-actions {
+				display: flex;
+				gap: 12px;
+				align-items: center;
+			}
+
+			.settings-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+				gap: 24px;
+			}
+
+			.section {
+				max-width: 90vw;
+				background: var(--color-canvas-default);
+				border: 1px solid var(--color-border-default);
+				border-radius: var(--radius);
+				padding: 20px;
+			}
+
+			.section-title {
+				font-size: 14px;
+				font-weight: 600;
+				margin-bottom: 16px;
+				padding-bottom: 8px;
+				border-bottom: 1px solid var(--color-border-default);
+				display: flex;
+				justify-content: space-between;
+			}
+
+			input {
+				width: 100%;
+				padding: 6px 12px;
+				font-size: 14px;
+				background: var(--color-canvas-subtle);
+				border: 1px solid var(--color-border-default);
+				border-radius: var(--radius);
+				color: inherit;
+			}
+
+			button {
+				cursor: pointer;
+				height: 32px;
+				padding: 0 16px;
+				font-size: 13px;
+				font-weight: 600;
+				border-radius: var(--radius);
+				border: 1px solid var(--color-btn-border);
+				background: var(--color-btn-bg);
+				color: inherit;
+			}
+
+			button.primary {
+				background: var(--color-btn-primary-bg);
+				color: white;
+				border: none;
+			}
+
+			button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+
+			.webhook-item {
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				padding: 12px 0;
+				border-bottom: 1px solid var(--color-border-default);
+				font-size: 13px;
+				font-family: monospace;
+				color: var(--color-fg-muted);
+			}
+		</style>
+	</head>
+
+	<body data-theme="dark">
+		<div class="container">
+			<header>
+				<a href="/" id="welcome">Welcome</a>
+				<div class="header-actions">
+					<button onclick="location.href = '/editor'">🎨 SVG</button>
+					<button class="star-btn" onclick="window.open('https://github.com/Bittu5134/GH-Follow-Tracker', '_blank')">⭐ Star</button>
+					<button id="themeToggle">☀️</button>
+					<button style="color: #cf222e" onclick="location.href = '/auth/logout'">Logout</button>
+				</div>
+			</header>
+
+			<div class="settings-grid">
+				<div class="section">
+					<h2 class="section-title">Add Webhook</h2>
+					<input type="url" id="webhookInput" placeholder="Discord or Slack URL" style="margin-bottom: 12px" />
+					<button class="primary" style="width: 100%" onclick="addWebhook()">Add Destination</button>
+				</div>
+
+				<div class="section">
+					<div class="section-title">
+						<span>Destinations</span>
+						<button id="saveBtn" class="primary" style="height: 24px; font-size: 11px" onclick="save()" disabled>Save Changes</button>
+					</div>
+					<div id="webhookList"></div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			let webhooks = [];
+			let hasChanges = false;
+
+			// --- Theme Management ---
+			const themeToggle = document.getElementById('themeToggle');
+			const applyTheme = (mode) => {
+				const theme = mode || (document.body.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
+				document.body.setAttribute('data-theme', theme);
+				localStorage.setItem('theme', theme);
+				themeToggle.innerText = theme === 'dark' ? '🌙' : '☀️';
+			};
+
+			// Auto-detect on load
+			const saved = localStorage.getItem('theme');
+			const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+			applyTheme(saved || (systemDark ? 'dark' : 'light'));
+
+			themeToggle.onclick = () => applyTheme();
+
+			// --- Data Logic ---
+			async function load() {
+				const res = await fetch('/api/me');
+				if (res.status === 401) {
+					window.location.href = '/auth/login';
+					return;
+				}
+
+				if (!res.ok) throw new Error('Failed to fetch profile');
+
+				const data = await res.json();
+				document.getElementById('welcome').innerText = `Welcome, ${data.username}`;
+				webhooks = data.webhooks || [];
+				render();
+			}
+
+			function render() {
+				const list = document.getElementById('webhookList');
+				const input = document.getElementById('webhookInput');
+				const addBtn = document.querySelector('.section button.primary');
+
+				list.innerHTML = webhooks.length
+					? webhooks
+							.map(
+								(url, i) => `
+        <div class="webhook-item">
+            <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:10px;">${url}</span>
+            <button style="color:#cf222e; border:none; background:none; padding:0;" onclick="remove(${i})">Remove</button>
+        </div>`,
+							)
+							.join('')
+					: '<p style="color:var(--color-fg-muted); font-size:12px; text-align:center; padding-top:10px;">No webhooks added.</p>';
+
+				if (webhooks.length >= 3) {
+					input.disabled = true;
+					input.placeholder = 'Limit of 3 reached';
+					addBtn.disabled = true;
+				} else {
+					input.disabled = false;
+					input.placeholder = 'Discord or Slack URL';
+					addBtn.disabled = false;
+				}
+			}
+
+			function addWebhook() {
+				const input = document.getElementById('webhookInput');
+				const val = input.value.trim();
+				if (val.startsWith('http')) {
+					webhooks.push(val);
+					input.value = '';
+					hasChanges = true;
+					document.getElementById('saveBtn').disabled = false;
+					render();
+				}
+			}
+
+			function remove(i) {
+				webhooks.splice(i, 1);
+				hasChanges = true;
+				document.getElementById('saveBtn').disabled = false;
+				render();
+			}
+
+			async function save() {
+				const btn = document.getElementById('saveBtn');
+				btn.innerText = 'Saving...';
+				btn.disabled = true;
+
+				const res = await fetch('/api/update_webhooks', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(webhooks),
+				});
+
+				if (res.ok) {
+					btn.innerText = '✅ Saved';
+					hasChanges = false;
+					setTimeout(() => {
+						btn.innerText = 'Save Changes';
+					}, 2000);
+				} else {
+					const err = await res.json();
+					alert(err.message || 'Failed to save');
+					btn.innerText = 'Error';
+					btn.disabled = false;
+				}
+			}
+
+			window.onbeforeunload = () => (hasChanges ? true : null);
+			load();
+		</script>
+	</body>
+</html>
