@@ -17,7 +17,7 @@
     <img alt="Discord: Bittu5134" src="https://img.shields.io/discord/877508637814300683?style=flat-square" />
   </a><br>
     <a href="https://follow.lazybittu.workers.dev/editor" target="_blank">
-    <img src="https://img.shields.io/badge/SVG_Editor-8A2BE2?style=for-the-badge" />
+    <img src="https://img.shields.io/badge/WEB_Editor-8A2BE2?style=for-the-badge" />
   </a> 
     <a href="https://follow.lazybittu.workers.dev/dashboard" target="_blank">
     <img src="https://img.shields.io/badge/Dashboard-909692?style=for-the-badge&labelColor=232925" />
@@ -94,7 +94,7 @@ For advanced customization, webhook triggers, or API access, refer to the [Featu
 
 ## Why This Exists?
 
-While the GitHub API provides in-depth data for most metrics, like historical timelines for repository stars but your follower count remains a static number. There is no native way to track history, trends, or specific follower events. 
+While the GitHub API provides in-depth data for most metrics, like historical timelines for repository stars. But there is no native way to track follow history, trends, or specific follower events. 
 
 This project bridges that gap by adding a persistent **"History Layer"** to the GitHub API.
 
@@ -108,10 +108,10 @@ To keep this project running smoothly while staying within the GitHub API’s go
 * **Opt-in Only:** Historical tracking is only enabled for users who **[star this repository](https://github.com/Bittu5134/GH-Follow-Tracker)**.
 * **Hourly Cycle:** Data snapshots and updates occur every **60 minutes**.
 * **Webhook Cap:** Maximum of **3 active webhooks** per user account.
-* **Data Resolution:** Events are captured hourly. If your net follower change within a single hour is zero (e.g., +1 then -1), the specific events may be skipped.
+* **Data Resolution:** Events are captured hourly. If your net follower change within a single hour is zero (e.g., +1 then -1), then the specific event may be skipped.
 
 >[!NOTE]
->These limits are subject to change as the project scales. If you are a power user with specific needs, feel free to open a discussion!
+>These limits are subject to change as the project scales. If you are a power user with specific needs, feel free to open an issue!
 
 ## Contributing
 
@@ -120,9 +120,11 @@ Feel free to **contribute**, open an **issue**, or suggest a **feature request**
 
 ## ❤️ Support the Project
 
-One of my aims during the development was to keep the hosting costs at minimum (or zero if possible) as a fun little challange for myself.
+One of my aims during the development was to keep the hosting costs at minimum (or zero if possible) as a fun little challenge for myself.
 
 But still if this tool has helped you track your growth or improve your profile, consider supporting its development!
+
+[![Support me on Patreon](https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3DLazyBittu%26type%3Dpatrons&style=for-the-badge)](https://patreon.com/LazyBittu)
 
 ## Inspired By
 
