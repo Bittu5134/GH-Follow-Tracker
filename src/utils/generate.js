@@ -138,8 +138,6 @@ const generatePoints = (data, timeframe = 'alltime', density = 100, smoothing = 
 };
 
 export function generateChartSVG(options = {}) {
-    console.log(Object.keys(THEMES));
-    
     const val = {
         ...DEFAULT_STATE,
         ...THEMES[options.theme],
@@ -149,9 +147,6 @@ export function generateChartSVG(options = {}) {
 
     let data = generatePoints(val.dataset, val.time, val.density);
     let uniqueData = new Set(data)
-    console.log(data);
-    console.log(uniqueData);
-    console.log(uniqueData.size*100/data.length)
     
     if (uniqueData.size*100/data.length < 60) val.paddingT += (100 - val.paddingT) / 2
 

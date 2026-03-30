@@ -14,7 +14,7 @@ URL_API = "https://api.github.com"
 URL_WORKER = "https://follow.lazybittu.workers.dev/api/v1"
 HEADERS = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
 
-def diskJson(path, data=None, indent=0):
+def diskJson(path, data=None, indent=None):
     """
     Reads or writes JSON data to a file.
     - If 'data' is provided: Writes data to the path.

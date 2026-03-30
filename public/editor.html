@@ -5,7 +5,7 @@
 		<link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>GitHub Follow Visualizer</title>
+		<title>Editor | Follow Tracker</title>
 		<style>
 			:root {
 				--color-canvas-default: #0d1117;
@@ -174,6 +174,10 @@
 				border-radius: var(--radius);
 			}
 
+			button:hover {
+				filter: invert();
+			}
+
 			button.primary {
 				color: #ffffff;
 				background-color: var(--color-btn-primary-bg);
@@ -269,7 +273,7 @@
 	<body data-theme="dark">
 		<div class="container">
 			<header>
-				<h1><a href="/">GitHub Follower Visualizer</a></h1>
+				<h1><a href="/">Github Follow Tracker</a></h1>
 				<div class="header-actions">
 					<button class="star-btn" onclick="window.open('https://github.com/Bittu5134/GH-Follow-Tracker', '_blank')">
 						⭐ Star on GitHub
@@ -601,15 +605,12 @@
 				// Buttons
 				document.getElementById('btn-url').onclick = () => {
 					navigator.clipboard.writeText(getURL());
-					alert('Direct SVG URL copied');
 				};
 				document.getElementById('btn-md').onclick = () => {
-					navigator.clipboard.writeText(`[![Stats](${getURL()})](${profileUrl})`);
-					alert('Markdown copied, This can be used on sites like Github');
+					navigator.clipboard.writeText(`[![Github Follow Tracker](${getURL()})](${profileUrl})`);
 				};
 				document.getElementById('btn-html').onclick = () => {
 					navigator.clipboard.writeText(`<a href="${profileUrl}"><img src="${getURL()}"></a>`);
-					alert('HTML copied...');
 				};
 				document.getElementById('btn-pic').onclick = () => {
 					const urlObj = new URL(getURL());
@@ -628,15 +629,11 @@
 					<picture>
 						<source media="(prefers-color-scheme: dark)" srcset="${darkUrl.toString()}">
 						<source media="(prefers-color-scheme: light)" srcset="${lightUrl.toString()}">
-						<img src="${lightUrl.toString()}" alt="GitHub Follower Stats">
+						<img src="${lightUrl.toString()}" alt="Github Follow Tracker">
 					</picture>
 					</a>`.trim();
 
-					navigator.clipboard.writeText(pictureTag).then(() => {
-						alert(
-							'HTML Picture code copied \nUse this code to render an SVG that dynamically changes its theme to match the system theme of the user...',
-						);
-					});
+					navigator.clipboard.writeText(pictureTag)
 				};
 				document.getElementById('btn-reset').onclick = () => {
 					const tmpUsername = state.username;

@@ -19,8 +19,6 @@ async function getAuthorizedUser(request, env) {
 }
 
 export async function handleDashboard(request, env) {
-	console.log('dash');
-
 	const user = await getAuthorizedUser(request, env);
 	if (!user) return Response.redirect(new URL('/auth/login', request.url).toString(), 302);
 
